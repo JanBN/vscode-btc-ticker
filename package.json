@@ -1,0 +1,86 @@
+{
+  "name": "btc-ticker",
+  "displayName": "BTC Ticker",
+  "description": "Shows Bitcoin price in USD in the VS Code status bar (updates every minute via Coinbase API).",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:btcTicker.refresh"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "btcTicker.refresh",
+        "title": "BTC Ticker: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "BTC Ticker",
+      "properties": {
+        "btcTicker.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 10,
+          "description": "How often to refresh the BTC price (in seconds)."
+        },
+        "btcTicker.statusBarAlignment": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ],
+          "default": "right",
+          "description": "Status bar alignment for the BTC price."
+        },
+        "btcTicker.statusBarPriority": {
+          "type": "number",
+          "default": 100,
+          "description": "Priority of the status bar item (higher = more to the left within the same alignment)."
+        },
+        "btcTicker.statusBarColor": {
+          "type": "string",
+          "default": "charts.green",
+          "enum": [
+            "charts.green",
+            "terminal.ansiGreen",
+            "statusBar.foreground",
+            "statusBarItem.prominentForeground",
+            "charts.blue",
+            "charts.red"
+          ],
+          "enumDescriptions": [
+            "Theme green (recommended).",
+            "Terminal ANSI green (theme-aware).",
+            "Default status bar foreground.",
+            "Prominent status bar item foreground.",
+            "Theme blue.",
+            "Theme red."
+          ],
+          "description": "Theme-aware color for the BTC status bar item."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run compile && npx --yes @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.0",
+    "typescript": "^5.5.4"
+  }
+}
+
+
