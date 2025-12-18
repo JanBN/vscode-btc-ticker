@@ -58,11 +58,13 @@ async function fetchBtcUsdPrice(): Promise<number> {
 }
 
 function formatUsd(value: number): string {
-  return new Intl.NumberFormat('en-US', {
+  const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 2
   }).format(value);
+  // Add space between $ and the number
+  return formatted.replace('$', '$ ');
 }
 
 function getConfig() {
@@ -80,21 +82,37 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(refreshCommand);
 
-  const { statusBarAlignment, statusBarPriority, statusBarColor } = getConfig();
-  const alignment =
-    statusBarAlignment === 'left' ? vscode.StatusBarAlignment.Left : vscode.StatusBarAlignment.Right;
-
-  const item = vscode.window.createStatusBarItem(alignment, statusBarPriority);
-  item.command = 'btcTicker.refresh';
-  // Theme-aware color (user-configurable) so it stays readable across light/dark themes.
-  item.color = new vscode.ThemeColor(statusBarColor);
-  item.text = 'BTC: …';
-  item.tooltip = 'BTC Ticker (click to refresh)';
-  item.show();
-  context.subscriptions.push(item);
-
+  let item: vscode.StatusBarItem;
+  let currentAlignment: 'left' | 'right' = 'right';
+  let currentPriority: number = 100;
   let inFlight: Promise<void> | null = null;
   let timer: NodeJS.Timeout | null = null;
+
+  function createStatusBarItem() {
+    // Dispose existing item if it exists
+    if (item) {
+      item.dispose();
+    }
+
+    const { statusBarAlignment, statusBarPriority, statusBarColor } = getConfig();
+    const alignment =
+      statusBarAlignment === 'left' ? vscode.StatusBarAlignment.Left : vscode.StatusBarAlignment.Right;
+
+    item = vscode.window.createStatusBarItem(alignment, statusBarPriority);
+    item.command = 'btcTicker.refresh';
+    // Theme-aware color (user-configurable) so it stays readable across light/dark themes.
+    item.color = new vscode.ThemeColor(statusBarColor);
+    item.text = 'BTC: …';
+    item.tooltip = 'BTC Ticker (click to refresh)';
+    item.show();
+    context.subscriptions.push(item);
+    
+    // Store current values for comparison
+    currentAlignment = statusBarAlignment;
+    currentPriority = statusBarPriority;
+  }
+
+  createStatusBarItem();
 
   async function refreshOnce() {
     if (inFlight) return inFlight;
@@ -128,10 +146,19 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('btcTicker')) return;
-      // Apply color changes immediately. Alignment/priority require recreating the item,
-      // but we keep those as "startup" settings for now.
-      const { statusBarColor: newColor } = getConfig();
-      item.color = new vscode.ThemeColor(newColor);
+      const { statusBarAlignment, statusBarPriority, statusBarColor } = getConfig();
+      
+      // Recreate item if alignment or priority changed
+      if (statusBarAlignment !== currentAlignment || statusBarPriority !== currentPriority) {
+        const currentText = item.text;
+        const currentTooltip = item.tooltip;
+        createStatusBarItem();
+        item.text = currentText;
+        item.tooltip = currentTooltip;
+      } else {
+        // Just update color if only color changed
+        item.color = new vscode.ThemeColor(statusBarColor);
+      }
       startTimer();
       void refreshOnce();
     })
